@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Sudoku Game</title>
+    
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <h1>Sudoku</h1>
+    <div id="sudoku-grid" >
+    <script>
+        function createGrid() {
+            const gridContainer = document.getElementById('sudoku-grid');
+    
+            // Loop through 9 rows
+            for (let row = 0; row < 9; row++) {
+                // Loop through 9 columns  
+                for (let col = 0; col < 9; col++) {
+                    // Create an input element
+                    const cell = document.createElement('input');
+            
+                    // Set properties for the input
+                    cell.type = 'text';
+                    cell.maxLength = 1; // Only allow one digit
+                    cell.id = `cell-${row}-${col}`; // Unique ID for each cell
+            
+                    // Add the cell to our container
+                    let classes = [];
+            
+                    // Right border after columns 2 and 5 (0-indexed)
+                    if (col === 2 || col === 5) {
+                        classes.push('thick-right');
+                    }
+            
+                    // Bottom border after rows 2 and 5 (creates horizontal separations)
+                    if (row === 2 || row === 5) {
+                        classes.push('thick-bottom');
+                    }
+            
+                    // Apply the classes
+                    if (classes.length > 0) {
+                        cell.className = classes.join(' ');
+                    } 
+                gridContainer.appendChild(cell);
+                }
+            }
+        }
+
+// Call the function when the page loads
+createGrid();
+    </script>
+    </div>
+</body>
+</html>
