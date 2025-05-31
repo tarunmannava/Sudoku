@@ -11,46 +11,108 @@
     <h1>Sudoku</h1>
     <div id="sudoku-grid" >
     <script>
-        function createGrid() {
-            const gridContainer = document.getElementById('sudoku-grid');
-    
-            // Loop through 9 rows
-            for (let row = 0; row < 9; row++) {
-                // Loop through 9 columns  
-                for (let col = 0; col < 9; col++) {
-                    // Create an input element
-                    const cell = document.createElement('input');
-            
-                    // Set properties for the input
-                    cell.type = 'text';
-                    cell.maxLength = 1; // Only allow one digit
-                    cell.id = `cell-${row}-${col}`; // Unique ID for each cell
-            
-                    // Add the cell to our container
-                    let classes = [];
-            
-                    // Right border after columns 2 and 5 (0-indexed)
-                    if (col === 2 || col === 5) {
-                        classes.push('thick-right');
-                    }
-            
-                    // Bottom border after rows 2 and 5 (creates horizontal separations)
-                    if (row === 2 || row === 5) {
-                        classes.push('thick-bottom');
-                    }
-            
-                    // Apply the classes
-                    if (classes.length > 0) {
-                        cell.className = classes.join(' ');
-                    } 
-                gridContainer.appendChild(cell);
+    // Your existing createGrid() function
+    function createGrid() {
+        const gridContainer = document.getElementById('sudoku-grid');
+        
+        for (let row = 0; row < 9; row++) {
+            for (let col = 0; col < 9; col++) {
+                const cell = document.createElement('input');
+                
+                cell.type = 'text';
+                cell.maxLength = 1;
+                cell.id = `cell-${row}-${col}`;
+                
+                let classes = [];
+                
+                if (col === 2 || col === 5) {
+                    classes.push('thick-right');
                 }
+                
+                if (row === 2 || row === 5) {
+                    classes.push('thick-bottom');
+                }
+                
+                if (classes.length > 0) {
+                    cell.className = classes.join(' ');
+                }
+                
+                gridContainer.appendChild(cell);
             }
         }
+        
+        // ADD THIS LINE at the end of createGrid()
+        addInteractivity();
+    }
 
-// Call the function when the page loads
-createGrid();
-    </script>
+    
+function highlightRowColBlock(row, col) {
+    // Clear previous highlights
+    document.querySelectorAll('.highlight-row, .highlight-col, .highlight-block, .highlight-focused').forEach(cell => {
+        cell.classList.remove('highlight-row', 'highlight-col', 'highlight-block', 'highlight-focused');
+    });
+    
+    // Get all cells
+    const allCells = document.querySelectorAll('#sudoku-grid input');
+    
+    allCells.forEach((cell, index) => {
+        const cellRow = Math.floor(index / 9);
+        const cellCol = index % 9;
+        
+        // Calculate 3x3 block
+        const blockRow = Math.floor(cellRow / 3);
+        const blockCol = Math.floor(cellCol / 3);
+        const focusedBlockRow = Math.floor(row / 3);
+        const focusedBlockCol = Math.floor(col / 3);
+        
+        // Highlight same row
+        if (cellRow === row) {
+            cell.classList.add('highlight-row');
+        }
+        
+        // Highlight same column
+        if (cellCol === col) {
+            cell.classList.add('highlight-col');
+        }
+        
+        // Highlight same 3x3 block
+        if (blockRow === focusedBlockRow && blockCol === focusedBlockCol) {
+            cell.classList.add('highlight-block');
+        }
+    });
+    
+    // Highlight the focused cell differently
+    const focusedCell = document.getElementById(`cell-${row}-${col}`);
+    if (focusedCell) {
+        focusedCell.classList.add('highlight-focused');
+    }
+}
+
+// Update your addInteractivity function
+function addInteractivity() {
+    document.querySelectorAll('#sudoku-grid input').forEach(cell => {
+        cell.addEventListener('focus', function() {
+            // Extract row and col from the cell ID
+            const id = this.id; // e.g., "cell-3-5"
+            const parts = id.split('-');
+            const row = parseInt(parts[1]);
+            const col = parseInt(parts[2]);
+            
+            highlightRowColBlock(row, col);
+        });
+        
+        cell.addEventListener('blur', function() {
+            // Remove all highlights when focus is lost
+            document.querySelectorAll('.highlight-row, .highlight-col, .highlight-block, .highlight-focused').forEach(cell => {
+                cell.classList.remove('highlight-row', 'highlight-col', 'highlight-block', 'highlight-focused');
+            });
+        });
+    });
+}
+
+    // Your existing createGrid() call
+    createGrid();
+</script>
     </div>
 </body>
 </html>
