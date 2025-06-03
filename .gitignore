@@ -1,0 +1,45 @@
+
+node_modules/            # installed packages
+npm-debug.log*           # npm logs
+yarn-debug.log*
+pnpm-debug.log*
+package-lock.json        # lockfiles (optional—keep if you prefer reproducible installs)
+yarn.lock
+pnpm-lock.yaml
+
+# ─── Environment secrets ─────────────────────────────────
+.env                      # main env file
+.env.*.local              # env variants (e.g., .env.development.local)
+.env.local
+
+# ─── Builds & coverage ───────────────────────────────────
+dist/
+build/
+coverage/
+*.tgz                    # packed module archives
+*.tsbuildinfo            # TypeScript incremental build info
+
+# ─── Runtime data ────────────────────────────────────────
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# ─── Editor / IDE folders ────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── OS / Misc artefacts ─────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# ─── Optional: Docker / containers ───────────────────────
+docker-compose.override.yml
+.env.docker

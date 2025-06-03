@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Sudoku Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Sudoku</h1>
+
+  <label>
+    Level:
+    <select id="level-select">
+      <option value="easy" selected>Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </label>
+
+  <div class="buttons">
+    <button id="new-btn">New Game</button>
+    <button id="check-btn">Check</button>
+    <button id="solve-btn">Show Solution</button>
+  </div>
+
+  <div id="sudoku-grid"></div>
+
+  <script>
+    /* ---------- Config ---------- */
+    const API = "http://localhost:3000";   // back-end root
+    const GRID = document.getElementById('sudoku-grid');
+
+    // Will hold the current puzzle’s solution array
+    let SOLUTION = null;
+
+    /* ---------- Utility helpers ---------- */
+    const coord = (i) => [Math.floor(i / 9), i % 9];
+    const boardToArray = () =>
+      [...GRID.querySelectorAll('input')].map(el => +el.value || 0)
+          .reduce((acc, v, i) => {
+            const [r, c] = coord(i);
+            acc[r] ??= [];
+            acc[r][c] = v;
+            return acc;
+          }, []);
+
+    /* ---------- Build 9×9 input grid once ---------- */
+    function createGrid() {
+      GRID.innerHTML = '';            // clear (for New Game)
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const cell = document.createElement('input');
+          cell.type = 'text';
+          cell.maxLength = 1;
+          cell.id = `cell-${r}-${c}`;
+
+          /* thick borders every 3rd row/col */
+          if (c === 2 || c === 5) cell.classList.add('thick-right');
+          if (r === 2 || r === 5) cell.classList.add('thick-bottom');
+
+          /* focus-highlight listeners */
+          cell.addEventListener('focus', () => highlight(r, c));
+          cell.addEventListener('blur',  clearHighlights);
+
+          /* live-validation on each keystroke */
+          cell.addEventListener('input', function () {
+            const val = +this.value;
+
+            /* -------- empty -> clear state & return -------- */
+            if (!val) {
+              this.classList.remove('invalid');
+              return;
+            }
+
+            /* -------- keep only digits 1-9 -------- */
+            if (val < 1 || val > 9) {
+              this.value = '';
+              return;
+            }
+
+            /* -------- compare with real solution -------- */
+            // SOLUTION must already be set by loadPuzzle()
+            const correct = SOLUTION && val === SOLUTION[r][c];
+
+            if (correct) {
+              /* right number: ensure no red pulse */
+              this.classList.remove('invalid');
+            } else {
+              /* wrong number: restart the pulse every time */
+
+              // 1. remove any previous animation
+              this.classList.remove('invalid');
+
+              // 2. force reflow so the next add() re-triggers CSS keyframes
+              void this.offsetWidth;
+
+              // 3. add class → CSS starts pulse-red (2 s)
+              this.classList.add('invalid');
+
+              // 4. after 2 s, wipe the entry and pulse
+              setTimeout(() => {
+                this.classList.remove('invalid');
+                this.value = '';
+              }, 2000);
+            }
+          });
+
+          GRID.appendChild(cell);
+        }
+      }
+    }
+
+    /* ---------- Highlight helpers ---------- */
+    function clearHighlights() {
+      GRID.querySelectorAll(
+        '.highlight-row, .highlight-col, .highlight-block, .highlight-focused'
+      ).forEach(el =>
+        el.classList.remove('highlight-row', 'highlight-col', 'highlight-block', 'highlight-focused')
+      );
+    }
+
+    function highlight(row, col) {
+      clearHighlights();
+      const all = [...GRID.querySelectorAll('input')];
+      all.forEach((cell, idx) => {
+        const [r, c] = coord(idx);
+        const sameRow  = r === row,
+              sameCol  = c === col,
+              sameBloc = Math.floor(r/3) === Math.floor(row/3) &&
+                         Math.floor(c/3) === Math.floor(col/3);
+        if (sameRow)  cell.classList.add('highlight-row');
+        if (sameCol)  cell.classList.add('highlight-col');
+        if (sameBloc) cell.classList.add('highlight-block');
+      });
+      document.getElementById(`cell-${row}-${col}`)
+              .classList.add('highlight-focused');
+    }
+
+    /* ---------- API calls ---------- */
+    async function loadPuzzle() {
+      // default to 'medium' if the <select> isn't on the page yet
+      const levelSel = document.getElementById('level-select');
+      const level = levelSel ? levelSel.value : 'medium';
+
+      // safe lookup; fall back to 32 clues (medium)
+      const clues = { easy: 40, medium: 32, hard: 26 }[level] ?? 32;
+
+      const url = `${API}/new?clues=${clues}`;
+      let board;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        ({ board } = await res.json());
+      } catch (err) {
+        console.error('Failed to fetch puzzle:', err);
+        alert('Could not load puzzle — see console.');
+        return;
+      }
+
+      /* ─── FETCH THE SOLUTION NEXT ─────────────────────────── */
+      try {
+        const solRes = await fetch(`${API}/solve`);
+        if (!solRes.ok) throw new Error(`${solRes.status} ${solRes.statusText}`);
+        ({ solution: SOLUTION } = await solRes.json());
+      } catch (err) {
+        console.error('Failed to fetch solution:', err);
+        alert('Could not load solution — see console.');
+        return;
+      }
+      /* ─────────────────────────────────────────────────────── */
+
+      /* --- grid MUST exist before this point --- */
+      if (GRID.children.length !== 81) createGrid();   // just in case
+
+      board.flat().forEach((val, i) => {
+        const input = GRID.children[i];
+        input.value = val || '';
+        input.readOnly = val !== 0;
+        input.classList.toggle('fixed', val !== 0);
+        input.classList.remove('invalid');
+      });
+    }
+
+    async function validateMove(row, col, num) {
+      const board = boardToArray();
+      const res = await fetch(`${API}/validate`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ row, col, num, board })
+      });
+      const { ok } = await res.json();
+      return ok;
+    }
+
+    async function checkBoard() {
+      const board = boardToArray();
+      const { solved } = await fetch(`${API}/check`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ board })
+      }).then(r => r.json());
+
+      alert(solved ? '🎉 Correct — you solved it!' :
+                     'Not yet — keep trying!');
+    }
+
+    async function revealSolution() {
+      const { solution } = await fetch(`${API}/solve`).then(r => r.json());
+      solution.flat().forEach((v, i) => {
+        const cell = GRID.children[i];
+        cell.value = v;
+        cell.classList.remove('invalid');
+        cell.readOnly = true;
+      });
+    }
+
+    /* ---------- Wire buttons ---------- */
+    document.getElementById('new-btn').addEventListener('click', () => loadPuzzle());
+    document.getElementById('check-btn').addEventListener('click', checkBoard);
+    document.getElementById('solve-btn').addEventListener('click', revealSolution);
+
+    /* ---------- Kick-off ---------- */
+    createGrid();
+    loadPuzzle();       // default puzzle on page load
+  </script>
+</body>
+</html>
